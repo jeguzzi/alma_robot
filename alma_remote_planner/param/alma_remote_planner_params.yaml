@@ -1,0 +1,3 @@
+RemotePlanner:
+  get_url: http://server:5000/worlds/Idsia/map/path
+  timeout: 5.0

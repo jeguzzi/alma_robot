@@ -1,0 +1,7 @@
+image: map_idsia_asse.png
+resolution: 0.050000
+origin: [-8.53,-7.96,0.00]
+negate: 0
+occupied_thresh: 0.2
+free_thresh: 0.15
+
