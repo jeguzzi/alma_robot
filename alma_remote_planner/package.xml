@@ -54,6 +54,7 @@
   <run_depend>std_msgs</run_depend>
   <run_depend>message_runtime</run_depend>
   <run_depend>tf</run_depend>
+  <run_depend>nav_core</run_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
@@ -62,6 +63,8 @@
     <!-- <metapackage/> -->
 
     <!-- Other tools can request additional information be placed here -->
+
+  <nav_core plugin="${prefix}/alma_remote_planner_plugin.xml" />
 
   </export>
 </package>

@@ -5,8 +5,38 @@ project(alma_remote_planner)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 
-add_subdirectory(cpr)
+if(NOT ${CMAKE_VERSION} LESS 3.2)
+    set(CMAKE_CXX_STANDARD 11)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+else()
+    message(STATUS "Checking compiler flags for C++11 support.")
+    # Set C++11 support flags for various compilers
+    include(CheckCXXCompilerFlag)
+    check_cxx_compiler_flag("-std=c++11" COMPILER_SUPPORTS_CXX11)
+    check_cxx_compiler_flag("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+    if(COMPILER_SUPPORTS_CXX11)
+        message(STATUS "C++11 is supported.")
+        if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -stdlib=libc++")
+        else()
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+        endif()
+    elseif(COMPILER_SUPPORTS_CXX0X)
+        message(STATUS "C++0x is supported.")
+        if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -stdlib=libc++")
+        else()
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+        endif()
+    else()
+        message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+    endif()
+endif()
+
+
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../cpr "${CMAKE_CURRENT_BINARY_DIR}/cpr")
 include_directories(${CPR_INCLUDE_DIRS})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../json11)
 
 find_package(catkin REQUIRED COMPONENTS
   angles
@@ -19,7 +49,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
 )
 
-find_package(jsoncpp)
+
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -126,12 +156,19 @@ catkin_package(
 # include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
-  ${CPR_INCLUDE_DIRS}
-  ${jsoncpp_INCLUDE_DIRS}
 )
 
-add_library(alma_remote_planner_lib src/alma_remote_planner.cpp)
-target_link_libraries (alma_remote_planner_lib ${CPR_LIBRARIES} ${jsoncpp_LIBRARIES})
+add_library(alma_remote_planner_lib src/alma_remote_planner.cpp ../json11/json11.cpp)
+target_link_libraries (alma_remote_planner_lib ${catkin_LIBRARIES} ${CPR_LIBRARIES})
+
+add_executable(alma_pose_updater src/alma_pose_updater.cpp ../json11/json11.cpp)
+target_link_libraries (alma_pose_updater ${catkin_LIBRARIES} ${CPR_LIBRARIES})
+
+
+#set_property(TARGET alma_remote_planner_lib PROPERTY CXX_STANDARD 11)
+
+
+
 ## Declare a C++ library
 # add_library(alma_remote_planner
 #   src/${PROJECT_NAME}/alma_remote_planner.cpp

@@ -11,7 +11,7 @@
 #include <tf/tf.h>
 #include <tf/transform_listener.h>
 #include <cpr/cpr.h>
-#include <json/json.h>
+#include "json11.hpp"
 
 using std::string;
 
@@ -23,22 +23,22 @@ namespace alma {
 class RemotePlanner : public nav_core::BaseGlobalPlanner {
 
 private:
-   tf::TransformListener *listener;
-   double timeout;
-   cpr:Url getPathUrl;
-   Json::Value poseInMapFrame(const geometry_msgs::PoseStamped &stamped_in);
-   
+        tf::TransformListener *listener;
+        double timeout;
+        cpr::Url getPathUrl;
+        json11::Json poseInMapFrame(const geometry_msgs::PoseStamped &stamped_in);
+
 public:
 
- RemotePlanner();
- RemotePlanner(std::string name, costmap_2d::Costmap2DROS* costmap_ros);
+        RemotePlanner();
+        RemotePlanner(std::string name, costmap_2d::Costmap2DROS* costmap_ros);
 
- /** overridden classes from interface nav_core::BaseGlobalPlanner **/
- void initialize(std::string name, costmap_2d::Costmap2DROS* costmap_ros);
- bool makePlan(const geometry_msgs::PoseStamped& start,
-               const geometry_msgs::PoseStamped& goal,
-               std::vector<geometry_msgs::PoseStamped>& plan
-              );
- };
+        /** overridden classes from interface nav_core::BaseGlobalPlanner **/
+        void initialize(std::string name, costmap_2d::Costmap2DROS* costmap_ros);
+        bool makePlan(const geometry_msgs::PoseStamped& start,
+                      const geometry_msgs::PoseStamped& goal,
+                      std::vector<geometry_msgs::PoseStamped>& plan
+                      );
+};
 };
 #endif
