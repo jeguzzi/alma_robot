@@ -26,9 +26,12 @@ private:
         tf::TransformListener listener;
         double timeout;
         int resolution_cm;
-        cpr::Url getPathUrl;
+        cpr::Url getPathUrl, postPathUrl;
         geometry_msgs::PoseStamped poseInMapFrame(const geometry_msgs::PoseStamped &stamped_in);
         bool initialized_;
+        string method;
+        std::string getPlan(const geometry_msgs::PoseStamped& start, const geometry_msgs::PoseStamped& end);
+        std::string postPlan(const geometry_msgs::PoseStamped& start, const geometry_msgs::PoseStamped& end);
 public:
 
         RemotePlanner();

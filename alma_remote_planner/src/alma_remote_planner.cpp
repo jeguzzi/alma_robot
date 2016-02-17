@@ -68,12 +68,13 @@ RemotePlanner::RemotePlanner(std::string name, costmap_2d::Costmap2DROS* costmap
 void RemotePlanner::initialize(std::string name, costmap_2d::Costmap2DROS* costmap_ros){
   if(!initialized_){
         ros::NodeHandle private_nh("~/" + name);
-        string getUrl;
-        private_nh.param("get_url", getUrl, string(""));
-        getPathUrl = cpr::Url {getUrl};
+        private_nh.param("get_url", getPathUrl, cpr::Url{""});
+        private_nh.param("post_url", postPathUrl, cpr::Url{""});
         private_nh.param("timeout", timeout, 1.0);
         private_nh.param("resolution", resolution_cm, 50);
-        ROS_INFO("Intialized remote planner at url %s with timeout %.1f s and resolution %d",getUrl.data(),timeout,resolution_cm);
+        private_nh.param("method", method, string("get"));
+        ROS_INFO("Intialized remote planner with GET %s, POST %s, method %s, with timeout %.1f s and resolution %d",
+                 getPathUrl.data(),postPathUrl.data(),method.data(),timeout,resolution_cm);
         initialized_ = true;
   }
   else
@@ -82,28 +83,69 @@ void RemotePlanner::initialize(std::string name, costmap_2d::Costmap2DROS* costm
   }
 }
 
+string RemotePlanner::getPlan(const geometry_msgs::PoseStamped& start, const geometry_msgs::PoseStamped& end)
+{
+  string start_s = pose2String(start);
+  string end_s = pose2String(end);
+  string res = to_string(resolution_cm);
+  auto params = cpr::Parameters{{"resolution", res},{"for","wheelchair"},
+                                {"start",start_s},{"end",end_s},
+                                {"geometry","false"}, {"poses","true"}};
+  ROS_INFO("Send GET request for new path to %s with data %s",getPathUrl.data(),params.content.data());
+  cpr::Response response = cpr::Get(getPathUrl, params,
+                                    cpr::Header {{"Content-Type", "application/json"}},
+                                    cpr::Timeout {(long)(1000 * timeout)});
+  ROS_INFO("Got response %ld with content %s",response.status_code,response.text.data());
+  if(response.status_code != 200)
+  {
+          ROS_INFO("Unvalid response, return that no path was found");
+          return string("");
+  }
+  return response.text;
+}
+
+string RemotePlanner::postPlan(const geometry_msgs::PoseStamped& start, const geometry_msgs::PoseStamped& end)
+{
+  Json s = pose2JsonArray(start);
+  Json e = pose2JsonArray(end);
+  Json data = Json::object {{"start",s},{"end",e}};
+  string res = to_string(resolution_cm);
+  auto params = cpr::Parameters{{"resolution",res},{"geometry","false"}, {"poses","true"}};
+  ROS_INFO("Send POST request for new path to %s with data %s and params %s",
+           getPathUrl.data(), data.dump().data(), params.content.data());
+  cpr::Response response = cpr::Post(postPathUrl, params, cpr::Body {{data.dump()}},
+                                    cpr::Header {{"Content-Type", "application/json"}},
+                                    cpr::Timeout {(long)(1000 * timeout)});
+  ROS_INFO("Got response %ld with content %s",response.status_code,response.text.data());
+  if(response.status_code != 201)
+  {
+          ROS_INFO("Unvalid response, return that no path was found");
+          return string("");
+  }
+  return response.text;
+}
+
 bool RemotePlanner::makePlan(const geometry_msgs::PoseStamped& start, const geometry_msgs::PoseStamped& goal,
                              std::vector<geometry_msgs::PoseStamped>& plan ){
 
-        ROS_INFO("Try to get a path");
-        string start_s = pose2String(poseInMapFrame(start));
-        string end_s = pose2String(poseInMapFrame(goal));
-        string res = to_string(resolution_cm);
-        auto params = cpr::Parameters{{"resolution", res},{"for","wheelchair"},
-                                      {"start",start_s},{"end",end_s},
-                                      {"geometry","false"}, {"poses","true"}};
-        ROS_INFO("Send request for new path to %s with data %s",getPathUrl.data(),params.content.data());
-        cpr::Response response = cpr::Get(getPathUrl, params,
-                                          cpr::Header {{"Content-Type", "application/json"}},
-                                          cpr::Timeout {(long)(1000 * timeout)});
-        ROS_INFO("Got response %d with content %s",response.status_code,response.text.data());
-        if(response.status_code != 200)
+        ROS_INFO("Try to make a plan");
+        geometry_msgs::PoseStamped s = poseInMapFrame(start);
+        geometry_msgs::PoseStamped e = poseInMapFrame(goal);
+        string response;
+        if(method == "get")
         {
-                ROS_INFO("Unvalid response, return that no path was found");
-                return false;
+          response = getPlan(s,e);
+        }
+        else
+        {
+          response = postPlan(s,e);
+        }
+        if(response.empty())
+        {
+          return false;
         }
         string error;
-        Json payload = Json::parse(response.text, error);
+        Json payload = Json::parse(response, error);
         if(!error.empty())
         {
                 ROS_INFO("Unable to parse response payload as json: %s", error.data());
