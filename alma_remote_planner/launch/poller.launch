@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<launch>
+  <node pkg="alma_remote_planner" type="remote_order_polle.py" name="poller" output="screen">
+      <param name="url" value="http://10.11.208.113:5000/worlds/IdsiaTurtleBot/wheelchair/0/order"/>
+  </node>
+</launch>
