@@ -23,11 +23,11 @@ namespace alma {
 class RemotePlanner : public nav_core::BaseGlobalPlanner {
 
 private:
-        tf::TransformListener *listener;
+        tf::TransformListener listener;
         double timeout;
         cpr::Url getPathUrl;
-        json11::Json poseInMapFrame(const geometry_msgs::PoseStamped &stamped_in);
-
+        geometry_msgs::PoseStamped poseInMapFrame(const geometry_msgs::PoseStamped &stamped_in);
+        bool initialized_;
 public:
 
         RemotePlanner();

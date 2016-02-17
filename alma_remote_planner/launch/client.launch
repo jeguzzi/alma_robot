@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no" ?>
 <launch>
-  <!--
   <include file="$(find alma_remote_planner)/launch/includes/move_base.launch.xml">
   </include>
--->
   <node pkg="alma_remote_planner" type="alma_pose_updater" name="pose_updater" output="screen">
     <rosparam file="$(find alma_remote_planner)/param/alma_pose_updater_params.yaml" command="load"/>
     <remap from="pose" to="/amcl_pose"/>

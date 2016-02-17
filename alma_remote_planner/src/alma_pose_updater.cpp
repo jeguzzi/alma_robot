@@ -14,7 +14,7 @@ static ros::Time last_ts;
 static double period;
 
 #define SERVER_TO_M 0.01
-#define M_TO_SERVER_S 100000
+#define M_TO_SERVER_S 10000
 #define M_TO_SERVER 100
 
 static Json pose2json(const geometry_msgs::PoseWithCovarianceStamped &msg)
@@ -23,7 +23,7 @@ static Json pose2json(const geometry_msgs::PoseWithCovarianceStamped &msg)
         Json jcov =  Json::array {
                 cov[0]*M_TO_SERVER_S,cov[1]*M_TO_SERVER_S,cov[5]*M_TO_SERVER_S,
                 cov[6]*M_TO_SERVER_S,cov[7]*M_TO_SERVER_S,cov[11]*M_TO_SERVER_S,
-                cov[30]*M_TO_SERVER_S,cov[31]*M_TO_SERVER_S,cov[35]*M_TO_SERVER_S
+                cov[30]*M_TO_SERVER,cov[31]*M_TO_SERVER,cov[35]
         };
         Json pose2D = Json::object {{"pose2D", Json::object {
                                              {"x", msg.pose.pose.position.x*M_TO_SERVER},

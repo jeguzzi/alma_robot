@@ -19,8 +19,8 @@
     <rosparam file="$(find alma_remote_planner)/param/global_costmap_params.yaml" command="load" />
     <rosparam file="$(find alma_remote_planner)/param/dwa_local_planner_params.yaml" command="load" />
     <rosparam file="$(find alma_remote_planner)/param/move_base_params.yaml" command="load" />
-    <rosparam file="$(find alma_remote_planner)/param/global_planner_params.yaml" command="load" />
-    <rosparam file="$(find alma_remote_planner)/param/navfn_global_planner_params.yaml" command="load" />
+    <!-- rosparam file="$(find alma_remote_planner)/param/global_planner_params.yaml" command="load" -->
+    <!-- rosparam file="$(find alma_remote_planner)/param/navfn_global_planner_params.yaml" command="load" -->
     <rosparam file="$(find alma_remote_planner)/param/alma_remote_planner_params.yaml" command="load" />
     <!-- external params file that could be loaded into the move_base namespace -->
     <rosparam file="$(arg custom_param_file)" command="load" />

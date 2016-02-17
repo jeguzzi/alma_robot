@@ -1,4 +1,4 @@
-get_url: http://10.11.208.113:5000:5000/worlds/IdsiaTurtleBot/wheelchairs/0/pose
-put_url: http://10.11.208.113:5000:5000/worlds/IdsiaTurtleBot/wheelchairs/0
+get_url: http://10.11.208.113:5000/worlds/IdsiaTurtleBot/wheelchairs/0/pose
+put_url: http://10.11.208.113:5000/worlds/IdsiaTurtleBot/wheelchairs/0
 timeout: 5.0
 period: 1.0

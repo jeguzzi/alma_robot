@@ -5,9 +5,9 @@
     <arg name="map_file" value="$(find alma_remote_planner)/map/map_idsia_asse.yaml"/>
   </include>
   <include file="$(find turtlebot_teleop)/launch/logitech-analog.launch"/>
-<!-->
-  <node pkg="alma_remote_planner" type="alma_pose_updater" name="pose_updater">
-      <rosparam file="$(find alma_remote_planner)/param/alma_pose_updater.yaml" command="load" />
+  <node pkg="alma_remote_planner" type="alma_pose_updater" name="pose_updater" output="screen">
+    <rosparam file="$(find alma_remote_planner)/param/alma_pose_updater_params.yaml" command="load"/>
+    <remap from="pose" to="/amcl_pose"/>
+    <remap from="initial_pose" to="/initialpose"/>
   </node>
-<-->
 </launch>
