@@ -23,8 +23,9 @@
     <arg name="initial_pose_a" value="$(arg initial_pose_a)"/>
   </include>
 
+<!--
   <include file="$(find alma_remote_planner)/launch/includes/move_base.launch.xml">
     <arg name="custom_param_file" value="$(arg custom_param_file)"/>
   </include>
-
+-->
 </launch>
