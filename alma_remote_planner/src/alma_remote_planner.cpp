@@ -72,7 +72,8 @@ void RemotePlanner::initialize(std::string name, costmap_2d::Costmap2DROS* costm
         private_nh.param("get_url", getUrl, string(""));
         getPathUrl = cpr::Url {getUrl};
         private_nh.param("timeout", timeout, 1.0);
-        ROS_INFO("Intialized remote planner at url %s with timeout %.1f s",getUrl.data(),timeout);
+        private_nh.param("resolution", resolution_cm, 50);
+        ROS_INFO("Intialized remote planner at url %s with timeout %.1f s and resolution %d",getUrl.data(),timeout,resolution_cm);
         initialized_ = true;
   }
   else
@@ -87,7 +88,8 @@ bool RemotePlanner::makePlan(const geometry_msgs::PoseStamped& start, const geom
         ROS_INFO("Try to get a path");
         string start_s = pose2String(poseInMapFrame(start));
         string end_s = pose2String(poseInMapFrame(goal));
-        auto params = cpr::Parameters{{"resolution", "10"},{"for","wheelchair"},
+        string res = to_string(resolution_cm);
+        auto params = cpr::Parameters{{"resolution", res},{"for","wheelchair"},
                                       {"start",start_s},{"end",end_s},
                                       {"geometry","false"}, {"poses","true"}};
         ROS_INFO("Send request for new path to %s with data %s",getPathUrl.data(),params.content.data());

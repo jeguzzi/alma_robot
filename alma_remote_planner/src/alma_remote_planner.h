@@ -25,6 +25,7 @@ class RemotePlanner : public nav_core::BaseGlobalPlanner {
 private:
         tf::TransformListener listener;
         double timeout;
+        int resolution_cm;
         cpr::Url getPathUrl;
         geometry_msgs::PoseStamped poseInMapFrame(const geometry_msgs::PoseStamped &stamped_in);
         bool initialized_;
