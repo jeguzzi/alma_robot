@@ -36,8 +36,8 @@ static geometry_msgs::PoseStamped jsonArray2pose(const Json &value)
         auto values = value.array_items();
         pose.header.frame_id = "map";
         pose.pose.orientation = tf::createQuaternionMsgFromYaw(value[2].number_value());
-        pose.pose.position.x = round(value[0].number_value()*SERVER_TO_M);
-        pose.pose.position.y = round(value[1].number_value()*SERVER_TO_M);
+        pose.pose.position.x = value[0].number_value()*SERVER_TO_M;
+        pose.pose.position.y = value[1].number_value()*SERVER_TO_M;
         return pose;
 }
 
@@ -116,7 +116,7 @@ bool RemotePlanner::makePlan(const geometry_msgs::PoseStamped& start, const geom
         {
                 plan.push_back(jsonArray2pose(value));
         }
-        ROS_INFO("Succesufully parsed payload. Added %lu waypoints to the path", plan.size());
+        ROS_INFO("Successfully parsed payload. Added %lu waypoints to the path", plan.size());
         return true;
 }
 

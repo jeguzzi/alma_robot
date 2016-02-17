@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no" ?>
 <launch>
-  <include file="$(find turtlebot_bringup)/launch/minimal.launch">
+  <include file="$(find turtlebot_bringup)/launch/minimal.launch"/>
   <include file="$(find alma_remote_planner)/launch/amcl_demo.launch">
     <arg name="map_file" value="$(find alma_remote_planner)/map/map_idsia_asse.yaml"/>
   </include>
