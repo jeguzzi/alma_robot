@@ -8,15 +8,6 @@ PLUGINLIB_EXPORT_CLASS(alma::RemotePlanner, nav_core::BaseGlobalPlanner)
 using namespace std;
 using namespace json11;
 
-static string sendRequest(cpr::Url url, const char *data, float timeout_s)
-{
-        long timeout_ms = long(timeout_s * 1000);
-        auto r = cpr::Get(url, cpr::Body {data}, cpr::Header {{"Content-Type", "application/json"}});
-        cout << r.status_code << endl;
-        cout << r.text << endl;
-        return r.text;
-}
-
 static Json pose2JsonArray(const geometry_msgs::PoseStamped &pose)
 {
         return Json::array {pose.pose.position.x, pose.pose.position.y, tf::getYaw(pose.pose.orientation)};
@@ -63,18 +54,40 @@ void RemotePlanner::initialize(std::string name, costmap_2d::Costmap2DROS* costm
         private_nh.param("get_url", getUrl, string(""));
         getPathUrl = cpr::Url {getUrl};
         private_nh.param("timeout", timeout, 1.0);
+        ROS_INFO("Intialized remote planner at url %s with timeout %.1f s",getUrl.data(),timeout);
 }
 
-bool RemotePlanner::makePlan(const geometry_msgs::PoseStamped& start, const geometry_msgs::PoseStamped& goal,  std::vector<geometry_msgs::PoseStamped>& plan ){
+bool RemotePlanner::makePlan(const geometry_msgs::PoseStamped& start, const geometry_msgs::PoseStamped& goal,
+                             std::vector<geometry_msgs::PoseStamped>& plan ){
+        Json data = Json::object {{"start", poseInMapFrame(start)},{"end", poseInMapFrame(goal)}};
+        ROS_INFO("Send request for new path to %s with data %s",getPathUrl.data(),data.dump().data());
+        cpr::Response response = cpr::Get(getPathUrl, cpr::Body {data.dump().data()},
+                                          cpr::Header {{"Content-Type", "application/json"}},
+                                          cpr::Timeout{(long)(1000 * timeout)});
+        ROS_INFO("Got response %d with content %s",response.status_code,response.text.data());
+        if(response.status_code != 200)
+        {
+          ROS_INFO("Unvalid response, return that no path was found");
+          return false;
+        }
 
-        Json data = Json::object {{"start",poseInMapFrame(start)},{"end",poseInMapFrame(goal)}};
-        string t = sendRequest(getPathUrl, data.dump().data(), timeout);
         string error;
-        Json response = Json::parse(t, error);
-        for (const Json& value : response["poses"].array_items())
+        Json payload = Json::parse(response.text, error);
+        if(error.empty())
+        {
+          ROS_INFO("Unable to parse response payload as json: %s", error.data());
+          return false;
+        }
+        if(!payload.has_shape({{"poses", json11::Json::ARRAY}}, error))
+        {
+          ROS_INFO("Payload has not the right shape: %s", error.data());
+          return false;
+        }
+        for (const Json& value : payload["poses"].array_items())
         {
                 plan.push_back(jsonArray2pose(value));
         }
+        ROS_INFO("Succesufully parsed payload. Added %lu waypoints to the path", plan.size());
         return true;
 }
 

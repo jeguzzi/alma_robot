@@ -9,24 +9,20 @@
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
   <maintainer email="jerome@idsia.ch">parallels</maintainer>
 
-
   <!-- One license tag required, multiple allowed, one license per tag -->
   <!-- Commonly used license strings: -->
   <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
   <license>TODO</license>
-
 
   <!-- Url tags are optional, but mutiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
   <!-- <url type="website">http://wiki.ros.org/idsia_kobuki</url> -->
 
-
   <!-- Author tags are optional, mutiple are allowed, one per tag -->
   <!-- Authors do not have to be maintianers, but could be -->
   <!-- Example: -->
   <!-- <author email="jane.doe@example.com">Jane Doe</author> -->
-
 
   <!-- The *_depend tags are used to specify dependencies -->
   <!-- Dependencies can be catkin packages or system dependencies -->
@@ -56,7 +52,6 @@
   <run_depend>tf</run_depend>
   <run_depend>nav_core</run_depend>
 
-
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- You can specify that this package is a metapackage here: -->
@@ -64,7 +59,7 @@
 
     <!-- Other tools can request additional information be placed here -->
 
-  <nav_core plugin="${prefix}/alma_remote_planner_plugin.xml" />
+    <nav_core plugin="${prefix}/alma_remote_planner_plugin.xml"/>
 
   </export>
 </package>
