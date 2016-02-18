@@ -1,5 +1,7 @@
 RemotePlanner:
   get_url: http://10.11.208.113:5000/worlds/IdsiaTurtleBot/map/path
   post_url: http://10.11.208.113:5000/worlds/IdsiaTurtleBot/users/0/paths
-  resolution: 60
+  resolution: 50
   timeout: 5.0
+  publish_plan: true
+  method: post

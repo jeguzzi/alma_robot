@@ -1,6 +1,7 @@
 #include <pluginlib/class_list_macros.h>
 #include "alma_remote_planner.h"
 #include <tf/transform_datatypes.h>
+#include <nav_msgs/Path.h>
 
 //register this planner as a BaseGlobalPlanner plugin
 PLUGINLIB_EXPORT_CLASS(alma::RemotePlanner, nav_core::BaseGlobalPlanner)
@@ -73,8 +74,13 @@ void RemotePlanner::initialize(std::string name, costmap_2d::Costmap2DROS* costm
         private_nh.param("timeout", timeout, 1.0);
         private_nh.param("resolution", resolution_cm, 50);
         private_nh.param("method", method, string("get"));
-        ROS_INFO("Intialized remote planner with GET %s, POST %s, method %s, with timeout %.1f s and resolution %d",
-                 getPathUrl.data(),postPathUrl.data(),method.data(),timeout,resolution_cm);
+        private_nh.param("publish_plan", publish_plan, false);
+        if(publish_plan)
+        {
+          plan_pub = private_nh.advertise<nav_msgs::Path>("plan", 1);
+        }
+        ROS_INFO("Intialized remote planner with GET %s, POST %s, method %s, with timeout %.1f s and resolution %d. Publish plan %d",
+                 getPathUrl.data(),postPathUrl.data(),method.data(),timeout,resolution_cm, publish_plan);
         initialized_ = true;
   }
   else
@@ -161,6 +167,12 @@ bool RemotePlanner::makePlan(const geometry_msgs::PoseStamped& start, const geom
                 plan.push_back(jsonArray2pose(value));
         }
         ROS_INFO("Successfully parsed payload. Added %lu waypoints to the path", plan.size());
+        if(publish_plan)
+        {
+          nav_msgs::Path msg = nav_msgs::Path();
+          msg.poses = plan;
+          plan_pub.publish(msg);
+        }
         return true;
 }
 

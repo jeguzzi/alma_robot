@@ -32,6 +32,8 @@ private:
         string method;
         std::string getPlan(const geometry_msgs::PoseStamped& start, const geometry_msgs::PoseStamped& end);
         std::string postPlan(const geometry_msgs::PoseStamped& start, const geometry_msgs::PoseStamped& end);
+        ros::Publisher plan_pub;
+        bool publish_plan;
 public:
 
         RemotePlanner();
