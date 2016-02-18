@@ -27,19 +27,21 @@ def get_target(url, current_target):
     if response.status_code == 200:
         data = responde.json()
         if 'order' in data:
+            if data['order'] is None and current_target is not None:
+                return (True, None)
             if 'end' in data['order']:
                 end = data['order']['end']
                 rospy.loginfo("Got end {end}".format(**locals()))
                 if end != current_target and type(end) is ListType:
                     return (True, end)
         else:
-             return (True, None)
+            if current_target is not None
+                return (True, None)
     return (False, current_target)
 
 
 def main():
     rospy.init_node('poller_node', anonymous=False)
-
     url = rospy.get_param("url", "")
     period = 10
     # Subscribe to the move_base action server
