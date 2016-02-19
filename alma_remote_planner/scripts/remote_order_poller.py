@@ -82,6 +82,7 @@ def main():
         return
     server = rospy.get_param("server_uri", None)
     wheelchair_id = rospy.get_param("wheelchair", None)
+    world = rospy.get_param("world", None)
 
     url = "{server}/worlds/{world}/wheelchairs/{wheelchair_id}/order".format(
         **locals())

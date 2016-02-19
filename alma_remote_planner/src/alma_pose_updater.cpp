@@ -58,6 +58,8 @@ static PoseWithCovarianceStamped json2pose(const Json &value) {
             msg.pose.covariance[31] = cov[7].number_value();
             msg.pose.covariance[35] = cov[8].number_value();
         }
+    } else {
+        ROS_INFO("No COV");
     }
     if (value.has_shape({{"pose2D", Json::OBJECT}}, err)) {
         Json pose_value = value["pose2D"];
@@ -73,6 +75,8 @@ static PoseWithCovarianceStamped json2pose(const Json &value) {
                 pose_value["theta"].number_value());
             pose.orientation =  q;
         }
+    } else {
+        ROS_INFO("No pose2D");
     }
     return msg;
 }
