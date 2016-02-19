@@ -1,7 +1,0 @@
-image: /home/robotnik/map_nav_5.png
-resolution: 0.050000
-origin: [-7.113, -10.482, 0.000000]
-negate: 0
-occupied_thresh: 0.5
-free_thresh: 0.2
-
