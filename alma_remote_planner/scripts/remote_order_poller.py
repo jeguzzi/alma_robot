@@ -11,29 +11,44 @@ from types import ListType
 
 
 def target2Pose(end):
-    print "target2Pose", end
     msg = Pose()
-    msg.position.x = end[0]*0.01
-    msg.position.y = end[1]*0.01
+    msg.position.x = end[0] * 0.01
+    msg.position.y = end[1] * 0.01
+    # Move base accept PoseStamped targets, i.e. we must specify
+    # an orientation.
+    # When no orientation is provided, we pass yaw = 0 and rol, pitch != 0.
+    # This way, the planners can check if a valid (2D) target angle is provided
+    # and if not, they should issue a plan to travel towards a position,
+    # ignoring the orientation (like the alma planner indeed does).
     if len(end) > 2:
         yaw = end[2]
+        roll = 0
+        pitch = 0
     else:
         yaw = 0
-    q = quaternion_from_euler(0,0,yaw)
-    msg.orientation = Quaternion(*q) 
+        roll = 1
+        pitch = 1
+    q = quaternion_from_euler(roll, pitch, yaw)
+    msg.orientation = Quaternion(*q)
     print "->", msg
     return msg
 
+
 def reset_target(url):
-    response = requests.put(url, data = json.dumps({'order': {}}), headers={'content-type': 'application/json'})
-    rospy.loginfo("Sent request to reset the order to {url}. Got response {response}".format(**locals()))
+    response = requests.put(url, data=json.dumps({'order': {}}),
+                            headers={'content-type': 'application/json'})
+    rospy.loginfo(
+        ("Sent request to reset the order to {url}. Got response {response}"
+         .format(**locals())))
     if response.status_code == 200:
         current_target = None
         rospy.loginfo("Reset target")
 
+
 def get_target(url, current_target):
     response = requests.get(url)
-    rospy.loginfo("Sent request to {url}. Got response {response}".format(**locals()))
+    rospy.loginfo(
+        "Sent request to {url}. Got response {response}".format(**locals()))
     if response.status_code == 200:
         data = response.json()
         if 'order' in data:
@@ -75,7 +90,8 @@ def main():
     while not rospy.is_shutdown():
         o_target = target
         (changed, target) = get_target(url, target)
-        rospy.loginfo("Changed {changed} to target {target}".format(**locals()))
+        rospy.loginfo(
+            "Changed {changed} to target {target}".format(**locals()))
         if changed:
             if target:
                 rospy.loginfo("Will send a new goal")

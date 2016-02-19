@@ -1,9 +1,13 @@
+/* Copyright 2016 Jerome */
+
+#include "./alma_remote_planner.h"
 #include <pluginlib/class_list_macros.h>
-#include "alma_remote_planner.h"
 #include <tf/transform_datatypes.h>
 #include <nav_msgs/Path.h>
+#include <string>
+#include <vector>
 
-//register this planner as a BaseGlobalPlanner plugin
+// register this planner as a BaseGlobalPlanner plugin
 PLUGINLIB_EXPORT_CLASS(alma::RemotePlanner, nav_core::BaseGlobalPlanner)
 
 
@@ -11,170 +15,190 @@ PLUGINLIB_EXPORT_CLASS(alma::RemotePlanner, nav_core::BaseGlobalPlanner)
 #define M_TO_SERVER_S 10000
 #define M_TO_SERVER 100
 
-using namespace std;
-using namespace json11;
+using std::string;
+using json11::Json;
 
-static Json pose2JsonArray(const geometry_msgs::PoseStamped &pose)
-{
-        return Json::array {round(M_TO_SERVER*pose.pose.position.x),
-                            round(M_TO_SERVER*pose.pose.position.y),
-                            round(tf::getYaw(pose.pose.orientation)*100)/100};
+static cpr::Header header = cpr::Header {{"Content-Type", "application/json"}};
+
+static Json pose2JsonArray(const PoseStamped &pose) {
+    return Json::array {round(M_TO_SERVER*pose.pose.position.x),
+                        round(M_TO_SERVER*pose.pose.position.y),
+                        round(tf::getYaw(pose.pose.orientation)*100)/100};
 }
 
-static string pose2String(const geometry_msgs::PoseStamped &pose)
-{
-  char s[100];
-  sprintf(s,"[%.0f,%.0f,%.2f]",
-          M_TO_SERVER*pose.pose.position.x,
-          M_TO_SERVER*pose.pose.position.y,
-          tf::getYaw(pose.pose.orientation));
-  return string(s);
+// See remote_order_poller.py: target2Pose
+/* Move base accept PoseStamped targets, i.e. we must specify an orientation.
+When no orientation is provided, we pass yaw = 0 and rol, pitch != 0.
+This way, the planners can check if a valid (2D) target angle is provided
+and if not, they should issue a plan to travel towards a position,
+ignoring the orientation (like the alma planner indeed does).
+*/
+static string pose2String(const PoseStamped &pose) {
+    tf::Quaternion q;
+    tf::quaternionMsgToTF(pose.pose.orientation, q);
+    double yaw, pitch, roll;
+    tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
+    char s[100];
+    ROS_INFO("RPY = [%.2f %.2f %.2f]", roll, pitch, yaw);
+    if (yaw == 0 && roll !=0 && pitch != 0) {
+        // Ignore orientation
+        snprintf(s, sizeof(s), "[%.0f,%.0f]",
+                 M_TO_SERVER*pose.pose.position.x,
+                 M_TO_SERVER*pose.pose.position.y);
+    } else {
+        /// TODO: could use the computed yaw;
+        snprintf(s, sizeof(s), "[%.0f,%.0f,%.2f]",
+                M_TO_SERVER*pose.pose.position.x,
+                M_TO_SERVER*pose.pose.position.y,
+                tf::getYaw(pose.pose.orientation));
+    }
+    return string(s);
 }
 
-static geometry_msgs::PoseStamped jsonArray2pose(const Json &value)
-{
-        geometry_msgs::PoseStamped pose;
-        auto values = value.array_items();
-        pose.header.frame_id = "map";
-        pose.pose.orientation = tf::createQuaternionMsgFromYaw(value[2].number_value());
-        pose.pose.position.x = value[0].number_value()*SERVER_TO_M;
-        pose.pose.position.y = value[1].number_value()*SERVER_TO_M;
-        return pose;
+static PoseStamped jsonArray2pose(const Json &value) {
+    PoseStamped pose;
+    auto values = value.array_items();
+    pose.header.frame_id = "map";
+    pose.pose.orientation = tf::createQuaternionMsgFromYaw(
+        value[2].number_value());
+    pose.pose.position.x = value[0].number_value()*SERVER_TO_M;
+    pose.pose.position.y = value[1].number_value()*SERVER_TO_M;
+    return pose;
 }
 
-//Default Constructor
+// Default Constructor
 namespace alma {
 
-geometry_msgs::PoseStamped RemotePlanner::poseInMapFrame(const geometry_msgs::PoseStamped &stamped_in)
-{
-        geometry_msgs::PoseStamped stamped_out;
-        try{
-                listener.transformPose("map", stamped_in, stamped_out);
-                return stamped_out;
+PoseStamped RemotePlanner::poseInMapFrame(const PoseStamped &stamped_in) {
+    PoseStamped stamped_out;
+        try {
+            listener.transformPose("map", stamped_in, stamped_out);
+            return stamped_out;
         }
         catch(tf::TransformException& ex) {
-                ROS_ERROR("Received an exception trying to transform a pose: %s", ex.what());
-                return stamped_out;
+            ROS_ERROR("Received an exception trying to transform a pose: %s",
+                      ex.what());
+            return stamped_out;
         }
 }
 
-RemotePlanner::RemotePlanner (){
-
+RemotePlanner::RemotePlanner() :  timeout{5000} {
 }
 
-RemotePlanner::RemotePlanner(std::string name, costmap_2d::Costmap2DROS* costmap_ros){
-        initialize(name, costmap_ros);
+RemotePlanner::RemotePlanner(string name,
+                             costmap_2d::Costmap2DROS* costmap_ros) :
+                             timeout{5000} {
+    initialize(name, costmap_ros);
 }
 
-void RemotePlanner::initialize(std::string name, costmap_2d::Costmap2DROS* costmap_ros){
-  if(!initialized_){
+void RemotePlanner::initialize(string name,
+                               costmap_2d::Costmap2DROS* costmap_ros) {
+    if (!initialized_) {
         ros::NodeHandle private_nh("~/" + name);
         private_nh.param("get_url", getPathUrl, cpr::Url{""});
         private_nh.param("post_url", postPathUrl, cpr::Url{""});
-        private_nh.param("timeout", timeout, 1.0);
+        double to;
+        private_nh.param<double>("timeout", to, 5.0);
+        long toi = round(1000 * to);
+        timeout = cpr::Timeout {toi};
         private_nh.param("resolution", resolution_cm, 50);
         private_nh.param("method", method, string("get"));
         private_nh.param("publish_plan", publish_plan, false);
-        if(publish_plan)
-        {
-          plan_pub = private_nh.advertise<nav_msgs::Path>("plan", 1);
+        if (publish_plan) {
+            plan_pub = private_nh.advertise<nav_msgs::Path>("plan", 1);
         }
-        ROS_INFO("Intialized remote planner with GET %s, POST %s, method %s, with timeout %.1f s and resolution %d. Publish plan %d",
-                 getPathUrl.data(),postPathUrl.data(),method.data(),timeout,resolution_cm, publish_plan);
+        ROS_INFO("Intialized remote planner with GET %s, POST %s, method %s, "
+                 "with timeout %ld ms and resolution %d. Publish plan %d",
+                 getPathUrl.data(), postPathUrl.data(), method.data(), toi,
+                 resolution_cm, publish_plan);
         initialized_ = true;
-  }
-  else
-  {
-    ROS_WARN("This planner has already been initialized... doing nothing");
-  }
+    } else {
+        ROS_WARN("This planner has already been initialized... doing nothing");
+    }
 }
 
-string RemotePlanner::getPlan(const geometry_msgs::PoseStamped& start, const geometry_msgs::PoseStamped& end)
-{
+string RemotePlanner::getPlan(const PoseStamped& start,
+                              const PoseStamped& end) {
   string start_s = pose2String(start);
   string end_s = pose2String(end);
-  string res = to_string(resolution_cm);
-  auto params = cpr::Parameters{{"resolution", res},{"for","wheelchair"},
-                                {"start",start_s},{"end",end_s},
-                                {"geometry","false"}, {"poses","true"}};
-  ROS_INFO("Send GET request for new path to %s with data %s",getPathUrl.data(),params.content.data());
-  cpr::Response response = cpr::Get(getPathUrl, params,
-                                    cpr::Header {{"Content-Type", "application/json"}},
-                                    cpr::Timeout {(long)(1000 * timeout)});
-  ROS_INFO("Got response %ld with content %s",response.status_code,response.text.data());
-  if(response.status_code != 200)
-  {
+  string res = std::to_string(resolution_cm);
+  auto params = cpr::Parameters{{"resolution", res}, {"for", "wheelchair"},
+                                {"start", start_s}, {"end", end_s},
+                                {"geometry", "false"}, {"poses", "true"}};
+  ROS_INFO("Send GET request for new path to %s with data %s",
+           getPathUrl.data(), params.content.data());
+  cpr::Response response = cpr::Get(getPathUrl, params, header, timeout);
+  ROS_INFO("Got response %ld with content %s",
+           response.status_code,
+           response.text.data());
+  if (response.status_code != 200) {
           ROS_INFO("Unvalid response, return that no path was found");
           return string("");
   }
   return response.text;
 }
 
-string RemotePlanner::postPlan(const geometry_msgs::PoseStamped& start, const geometry_msgs::PoseStamped& end)
-{
+string RemotePlanner::postPlan(const PoseStamped& start,
+                               const PoseStamped& end) {
   Json s = pose2JsonArray(start);
   Json e = pose2JsonArray(end);
-  Json data = Json::object {{"start",s},{"end",e}};
-  string res = to_string(resolution_cm);
-  auto params = cpr::Parameters{{"resolution",res},{"geometry","false"}, {"poses","true"}};
+  Json data = Json::object {{"start", s}, {"end", e}};
+  string res = std::to_string(resolution_cm);
+  auto params = cpr::Parameters{{"resolution", res},
+                                {"geometry", "false"},
+                                {"poses", "true"}};
+  auto body = cpr::Body {{data.dump()}};
   ROS_INFO("Send POST request for new path to %s with data %s and params %s",
            getPathUrl.data(), data.dump().data(), params.content.data());
-  cpr::Response response = cpr::Post(postPathUrl, params, cpr::Body {{data.dump()}},
-                                    cpr::Header {{"Content-Type", "application/json"}},
-                                    cpr::Timeout {(long)(1000 * timeout)});
-  ROS_INFO("Got response %ld with content %s",response.status_code,response.text.data());
-  if(response.status_code != 201)
-  {
+  cpr::Response response = cpr::Post(postPathUrl, params, body, header,
+                                     timeout);
+  ROS_INFO("Got response %ld with content %s",
+           response.status_code, response.text.data());
+  if (response.status_code != 201) {
           ROS_INFO("Unvalid response, return that no path was found");
           return string("");
   }
   return response.text;
 }
 
-bool RemotePlanner::makePlan(const geometry_msgs::PoseStamped& start, const geometry_msgs::PoseStamped& goal,
-                             std::vector<geometry_msgs::PoseStamped>& plan ){
-
+bool RemotePlanner::makePlan(const PoseStamped& start,
+                             const PoseStamped& goal,
+                             std::vector<PoseStamped>& plan ) {
         ROS_INFO("Try to make a plan");
-        geometry_msgs::PoseStamped s = poseInMapFrame(start);
-        geometry_msgs::PoseStamped e = poseInMapFrame(goal);
+        PoseStamped s = poseInMapFrame(start);
+        PoseStamped e = poseInMapFrame(goal);
         string response;
-        if(method == "get")
-        {
-          response = getPlan(s,e);
+        if (method == "get") {
+          response = getPlan(s, e);
+        } else {
+          response = postPlan(s, e);
         }
-        else
-        {
-          response = postPlan(s,e);
-        }
-        if(response.empty())
-        {
+        if (response.empty()) {
           return false;
         }
         string error;
         Json payload = Json::parse(response, error);
-        if(!error.empty())
-        {
-                ROS_INFO("Unable to parse response payload as json: %s", error.data());
+        if (!error.empty()) {
+                ROS_INFO("Unable to parse response payload as json: %s",
+                         error.data());
                 return false;
         }
-        if(!payload.has_shape({{"poses", json11::Json::ARRAY}}, error))
-        {
+        if (!payload.has_shape({{"poses", json11::Json::ARRAY}}, error)) {
                 ROS_INFO("Payload has not the right shape: %s", error.data());
                 return false;
         }
-        for (const Json& value : payload["poses"].array_items())
-        {
+        for (const Json& value : payload["poses"].array_items()) {
                 plan.push_back(jsonArray2pose(value));
         }
-        ROS_INFO("Successfully parsed payload. Added %lu waypoints to the path", plan.size());
-        if(publish_plan)
-        {
+        ROS_INFO("Successfully parsed payload. Added %lu waypoints to the path",
+                 plan.size());
+        if (publish_plan) {
           nav_msgs::Path msg = nav_msgs::Path();
-	  msg.header.frame_id = "map";
+          msg.header.frame_id = "map";
           msg.poses = plan;
           plan_pub.publish(msg);
         }
         return true;
 }
 
-};
+};  // namespace alma
