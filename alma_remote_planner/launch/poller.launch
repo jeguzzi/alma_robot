@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no" ?>
 <launch>
-  <node pkg="alma_remote_planner" type="remote_order_polle.py" name="poller" output="screen">
-      <param name="url" value="http://10.11.208.113:5000/worlds/IdsiaTurtleBot/wheelchair/0/order"/>
+  <node pkg="alma_remote_planner" type="alma_pose_updater" name="pose_updater" output="screen">
+    <rosparam file="$(find alma_remote_planner)/param/alma_pose_updater_params.yaml" command="load"/>
+    <remap from="pose" to="/amcl_pose"/>
+    <remap from="initial_pose" to="/initialpose"/>
   </node>
+  <node pkg="alma_remote_planner" type="remote_order_poller.py" name="poller" output="screen">
+      <param name="url" value="http://192.168.201.58:5000/worlds/IdsiaTurtleBot/wheelchairs/0/order"/>
+  </node>
+
 </launch>

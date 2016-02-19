@@ -170,6 +170,7 @@ bool RemotePlanner::makePlan(const geometry_msgs::PoseStamped& start, const geom
         if(publish_plan)
         {
           nav_msgs::Path msg = nav_msgs::Path();
+	  msg.header.frame_id = "map";
           msg.poses = plan;
           plan_pub.publish(msg);
         }
