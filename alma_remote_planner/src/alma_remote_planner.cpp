@@ -34,23 +34,26 @@ and if not, they should issue a plan to travel towards a position,
 ignoring the orientation (like the alma planner indeed does).
 */
 static string pose2String(const PoseStamped &pose) {
+  ROS_INFO("pose2string");
     tf::Quaternion q;
     tf::quaternionMsgToTF(pose.pose.orientation, q);
     double yaw, pitch, roll;
     tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
     char s[100];
     ROS_INFO("RPY = [%.2f %.2f %.2f]", roll, pitch, yaw);
-    if (yaw == 0 && roll !=0 && pitch != 0) {
+    if (fabs(yaw) < 0.001 && fabs(roll) > 0.001 && fabs(pitch) > 0.001) {
         // Ignore orientation
-        snprintf(s, sizeof(s), "[%.0f,%.0f]",
+      ROS_INFO("Ignore orientation!");  
+      snprintf(s, sizeof(s), "[%.0f,%.0f]",
                  M_TO_SERVER*pose.pose.position.x,
                  M_TO_SERVER*pose.pose.position.y);
     } else {
         /// TODO: could use the computed yaw;
-        snprintf(s, sizeof(s), "[%.0f,%.0f,%.2f]",
-                M_TO_SERVER*pose.pose.position.x,
-                M_TO_SERVER*pose.pose.position.y,
-                tf::getYaw(pose.pose.orientation));
+      ROS_INFO("Target has orientation");
+      snprintf(s, sizeof(s), "[%.0f,%.0f,%.2f]",
+	       M_TO_SERVER*pose.pose.position.x,
+	       M_TO_SERVER*pose.pose.position.y,
+	       tf::getYaw(pose.pose.orientation));
     }
     return string(s);
 }
@@ -160,16 +163,20 @@ string RemotePlanner::getPlan(const PoseStamped& start,
 
 string RemotePlanner::postPlan(const PoseStamped& start,
                                const PoseStamped& end) {
-  Json s = pose2JsonArray(start);
-  Json e = pose2JsonArray(end);
-  Json data = Json::object {{"start", s}, {"end", e}};
+  // Json s = pose2JsonArray(start);
+  // Json e = pose2JsonArray(end);
+  // Json data = Json::object {{"start", s}, {"end", e}};
+  // auto body = cpr::Body {{data.dump()}};
+  string start_s = pose2String(start);
+  string end_s = pose2String(end);
+  auto body = cpr::Body {{"{\"start\":" + start_s + ",\"end\":" + end_s + "}"}};
   string res = std::to_string(resolution_cm);
   auto params = cpr::Parameters{{"resolution", res},
                                 {"geometry", "false"},
                                 {"poses", "true"}};
-  auto body = cpr::Body {{data.dump()}};
+  
   ROS_INFO("Send POST request for new path to %s with data %s and params %s",
-           getPathUrl.data(), data.dump().data(), params.content.data());
+           getPathUrl.data(), body.data(), params.content.data());
   cpr::Response response = cpr::Post(postPathUrl, params, body, header,
                                      timeout);
   ROS_INFO("Got response %ld with content %s",

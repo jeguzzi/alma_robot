@@ -67,7 +67,7 @@ static PoseWithCovarianceStamped json2pose(const Json &value) {
             {"x", Json::NUMBER},
             {"y", Json::NUMBER},
             {"theta", Json::NUMBER}};
-        auto pose = msg.pose.pose;
+	geometry_msgs::Pose pose;
         if (pose_value.has_shape(pose_shape, err)) {
             pose.position.x = pose_value["x"].number_value()*SERVER_TO_M;
             pose.position.y = pose_value["y"].number_value()*SERVER_TO_M;
@@ -75,6 +75,7 @@ static PoseWithCovarianceStamped json2pose(const Json &value) {
                 pose_value["theta"].number_value());
             pose.orientation =  q;
         }
+	msg.pose.pose = pose;
     } else {
         ROS_INFO("No pose2D");
     }

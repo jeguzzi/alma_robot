@@ -26,8 +26,8 @@ def target2Pose(end):
         pitch = 0
     else:
         yaw = 0
-        roll = 1
-        pitch = 1
+        roll = 0.01
+        pitch = 0.01
     q = quaternion_from_euler(roll, pitch, yaw)
     msg.orientation = Quaternion(*q)
     print "->", msg
@@ -86,7 +86,7 @@ def main():
 
     url = "{server}/worlds/{world}/wheelchairs/{wheelchair_id}/order".format(
         **locals())
-    period = rospy.param("~period", 1)
+    period = rospy.get_param("~period", 1)
     rospy.loginfo("Initialized with url %s and period %d" % (url, period))
     # Subscribe to the move_base action server
     move_base = actionlib.SimpleActionClient("move_base", MoveBaseAction)

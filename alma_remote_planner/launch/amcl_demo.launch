@@ -1,5 +1,5 @@
 <launch>
-  <arg name="custom_param_file" default="$(find alma_remote_planner)/param/dummy.yaml"/>
+
   <include file="$(find turtlebot_bringup)/launch/3dsensor.launch">
     <arg name="rgb_processing" value="false" />
     <arg name="depth_registration" value="false" />
@@ -24,8 +24,5 @@
   </include>
 
 
-  <include file="$(find alma_remote_planner)/launch/includes/move_base.launch.xml">
-    <arg name="custom_param_file" value="$(arg custom_param_file)"/>
-  </include>
-
+ 
 </launch>
