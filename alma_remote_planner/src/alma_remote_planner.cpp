@@ -95,8 +95,28 @@ void RemotePlanner::initialize(string name,
                                costmap_2d::Costmap2DROS* costmap_ros) {
     if (!initialized_) {
         ros::NodeHandle private_nh("~/" + name);
-        private_nh.param("get_url", getPathUrl, cpr::Url{""});
-        private_nh.param("post_url", postPathUrl, cpr::Url{""});
+        string server_uri;
+        string world_id;
+        int user_id;
+        if (!ros::param::get("server_uri", server_uri)) {
+            ROS_FATAL("Please provide parameter server_uri!");
+            ros::shutdown();
+        }
+        if (!ros::param::get("world", world_id)) {
+            ROS_FATAL("Please provide parameter world!");
+            ros::shutdown();
+        }
+        if (!ros::param::get("user", user_id)) {
+            ROS_FATAL("Please provide parameter user!");
+            ros::shutdown();
+        }
+        char s[100];
+        snprintf(s, sizeof(s), "%s/worlds/%s/map/path",
+                 server_uri.data(), world_id.data());
+        getPathUrl = cpr::Url {s};
+        snprintf(s, sizeof(s), "%s/worlds/%s/users/%d/paths",
+                 server_uri.data(), world_id.data(), user_id);
+        postPathUrl = cpr::Url {s};
         double to;
         private_nh.param<double>("timeout", to, 5.0);
         long toi = round(1000 * to);

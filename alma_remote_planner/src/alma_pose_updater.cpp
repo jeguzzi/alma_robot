@@ -10,6 +10,7 @@
 
 using json11::Json;
 using geometry_msgs::PoseWithCovarianceStamped;
+using std::string;
 
 static cpr::Url pose_put_url;
 static cpr::Url pose_get_url;
@@ -43,7 +44,7 @@ static PoseWithCovarianceStamped json2pose(const Json &value) {
     PoseWithCovarianceStamped msg;
     msg.header.frame_id = "map";
     /// TODO: check if value has field 'covariance'
-    std::string err;
+    string err;
     if (value.has_shape({{"covariance", Json::ARRAY}}, err)) {
         auto cov = value["covariance"].array_items();
         if (cov.size() == 9) {
@@ -91,7 +92,7 @@ static void publish_initial_pose() {
     ROS_INFO("Fetched current pose. Got response %ld with content %s",
              r.status_code, r.text.data());
     if (r.status_code == 200) {
-        std::string error;
+        string error;
         Json payload = Json::parse(r.text, error);
         if (!error.empty()) {
             ROS_INFO("Unable to parse response payload as json: %s",
@@ -114,11 +115,31 @@ int main(int argc, char **argv) {
     ros::NodeHandle pnh("~");
     ros::NodeHandle n;
     last_ts = ros::Time(0);
-    pnh.param<std::string>("get_url", pose_get_url, std::string(""));
-    pnh.param<std::string>("put_url", pose_put_url, std::string(""));
+    string server_uri;
+    string world_id;
+    int wheelchair_id;
+    if (!ros::param::get("server_uri", server_uri)) {
+        ROS_FATAL("Please provide parameter server_uri!");
+        return 1;
+    }
+    if (!ros::param::get("world", world_id)) {
+        ROS_FATAL("Please provide parameter world!");
+        return 1;
+    }
+    if (!ros::param::get("wheelchair", wheelchair_id)) {
+        ROS_FATAL("Please provide parameter wheelchair!");
+        return 1;
+    }
+    char s[100];
+    snprintf(s, sizeof(s), "%s/worlds/%s/wheelchairs/%d/pose",
+             server_uri.data(), world_id.data(), wheelchair_id);
+    pose_get_url = cpr::Url {s};
+    snprintf(s, sizeof(s), "%s/worlds/%s/wheelchairs/%d",
+             server_uri.data(), world_id.data(), wheelchair_id);
+    pose_put_url = cpr::Url {s};
     double to;
     pnh.param<double>("timeout", to, 5.0);
-    long toi = round(1000 * to);
+    int64_t toi = round(1000 * to);
     timeout = cpr::Timeout {toi};
     pnh.param<double>("period", period, 1.0);
     ROS_INFO("Initialized with urls %s (GET) and %s (PUT) and timeout %ld s",

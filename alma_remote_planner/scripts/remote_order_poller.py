@@ -75,8 +75,18 @@ def get_target(url, current_target):
 
 def main():
     rospy.init_node('poller_node', anonymous=False)
-    url = rospy.get_param("~url", "")
-    period = 1
+
+    if not (rospy.has_param('server_uri') and rospy.has_param('wheelchair') and
+            rospy.has_param('world')):
+        rospy.logfatal("no server_uri or wheelchair or world params provided")
+        return
+    server = rospy.get_param("server_uri", None)
+    wheelchair_id = rospy.get_param("wheelchair", None)
+
+    url = "{server}/worlds/{world}/wheelchairs/{wheelchair_id}/order".format(
+        **locals())
+    period = rospy.param("~period", 1)
+    rospy.loginfo("Initialized with url %s and period %d" % (url, period))
     # Subscribe to the move_base action server
     move_base = actionlib.SimpleActionClient("move_base", MoveBaseAction)
 

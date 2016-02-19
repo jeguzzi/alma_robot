@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no" ?>
 <launch>
+  <param name="server_uri" value="http://192.168.201.58:5000"/>
+  <param name="user" value="0"/>
+  <param name="world" value="IdsiaTurtleBot"/>
   <include file="$(find turtlebot_bringup)/launch/minimal.launch"/>
   <include file="$(find alma_remote_planner)/launch/amcl_demo.launch">
     <arg name="map_file" value="$(find alma_remote_planner)/map/map_idsia_asse.yaml"/>
   </include>
   <include file="$(find turtlebot_teleop)/launch/logitech-analog.launch"/>
-
 </launch>
