@@ -1,0 +1,12 @@
+<launch>
+  <arg name="custom_param_file" default="$(find alma_remote_planner)/param/dummy.yaml"/>
+ 
+  <!-- Map server -->
+  <arg name="map_file" default="$(env TURTLEBOT_MAP_FILE)"/>
+  <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
+
+  <include file="$(find alma_remote_planner)/launch/includes/move_base_navfn.launch.xml">
+    <arg name="custom_param_file" value="$(arg custom_param_file)"/>
+  </include>
+
+</launch>

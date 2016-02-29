@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<launch>
+    <node name="errand_node" pkg="errand" type="errand_node.py" respawn="false" output="screen">
+      <rosparam command="load" file="$(find alma_remote_planner)/param/pathIROS.yaml" />
+    </node>
+</launch>
