@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<launch>
+
+  <arg name="server" default="$(arg server)"/>
+  <arg name="world"  default="$(arg world)"/>
+  <arg name="user"  default="$(arg user)"/>
+  <arg name="wheelchair"  default="$(arg wheelchair)"/>
+
+  <arg name="robot" default="$(optenv ROBOT turtlebot)"/>
+  <arg name="custom_param_file" default="$(find alma_remote_planner)/param/dummy.yaml"/>
+  <arg name="use_remote_planner" default="true"/>
+  <param name="server_uri" value="$(arg server)"/>
+  <param name="user" value="$(arg user)"/>
+  <param name="world" value="$(arg world)"/>
+  <param name="wheelchair" value="$(arg wheelchair)"/>
+  <arg name="map_file" default="$(find alma_remote_planner)/worlds/$(arg world)/map/map.yaml"/>
+  <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
+  <node pkg="alma_remote_planner" type="alma_pose_updater" name="pose_updater" output="screen">
+    <rosparam file="$(find alma_remote_planner)/param/alma_pose_updater_params.yaml" command="load"/>
+    <remap from="pose" to="/amcl_pose"/>
+    <remap from="initial_pose" to="/initialpose"/>
+  </node>
+  <node pkg="alma_remote_planner" type="remote_order_poller.py" name="poller" output="screen"/>
+  <include file="$(find alma_remote_planner)/launch/includes/$(arg robot)/move_base_m.launch.xml">
+    <arg name="custom_param_file" value="$(arg custom_param_file)"/>
+    <arg name="use_remote_planner" value="$(arg use_remote_planner)"/>
+  </include>
+</launch>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<launch>
+    <include file="$(find alma_remote_planner)/launch/alma.launch">
+      <arg name="server" value="http://10.11.211.202:5000"/>
+      <arg name="world" value="IdsiaTurtleBot"/>
+      <arg name="user" value="0"/>
+      <arg name="wheelchair" value="0"/>
+      <arg name="use_remote_planner" value="true"/>
+    </include>
+</launch>
