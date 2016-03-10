@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no" ?>
 <launch>
     <include file="$(find alma_remote_planner)/launch/alma.launch">
-      <arg name="server" value="192.168.201.58:5000"/>
+      <arg name="server" value="http://192.168.201.58:5000"/>
       <arg name="world" value="ISC"/>
-      <arg name="user" value="0"/>
-      <arg name="wheelchair" value="0"/>
+      <arg name="user" value="3"/>
+      <arg name="wheelchair" value="1"/>
       <arg name="use_remote_planner" value="true"/>
     </include>
 </launch>
